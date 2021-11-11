@@ -2,6 +2,14 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
+
+#include <stdio.h>
+//#include <string.h>
+
+#include <random>
+#include <string>
+#include <algorithm>
+using namespace std;
 //-----------------
 
 //  Methods Signatures
@@ -16,11 +24,20 @@ void drawCircle(int x, int y, float r);
 
 //  Global Variables
 int t = 0;
+
+float s = 10;
 float playerX = 28;
 float playerY = 0;
 float xpos = 180;
+
+bool win = false;
+bool lose = false;
 bool power = false;
-float pipes[3][3] = {{140, 170, 100}, { 140, 170, 100}, { 140, 170, 100}};
+int lives = 3;
+
+float pipes[3][3] = {{90, 120, 150}, {150, 120, 90}, {100, 100, 100}};
+int p[3] = {0,1,2};
+
 float pipeColor[3] = {0, 1, 0};
 float pipeColorAlt[3] = {1, 0, 0};
 //-----------------
@@ -29,7 +46,7 @@ int main(int argc, char **argr)
 {
 	glutInit(&argc, argr);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-
+	random_shuffle(&p[0], &p[3 ]);
 	glutInitWindowPosition(0, 0);
 	glutInitWindowSize(1280, 720);
 	glutCreateWindow("Flappy Bird");
@@ -57,7 +74,7 @@ void drawRect(float x, float y, float w, float h, float color[3])
 	glEnd();
 }
 
-void drawCircle(float x, float y, float r , float color[3])
+void drawCircle(float x, float y, float r, float color[3])
 {
 	glPushMatrix();
 	glColor3f(color[0], color[1], color[2]);
@@ -82,30 +99,28 @@ void drawPlayer()
 }
 */
 
+void drawPlayer()
+{
 
-void drawPlayer(){
-	int r = 69;
-	int g = 205;
-	int b = 62;
-	float color[3] = {0 , 0.3 , 0.7};
 	glBegin(GL_TRIANGLES);
 	glColor3f(0, 0.3, 0.6);
-	glVertex2f(playerX + 15 ,playerY + 15);
-	glVertex2f(playerX + 15 , playerY -15);
-	glVertex2d(playerX-15 , playerY+3);
+	glVertex2f(playerX + s, playerY + s);
+	glVertex2f(playerX + s, playerY - s);
+	glVertex2d(playerX - s, playerY + s / 5);
 	glColor3f(1, 0.7, 0);
-	glVertex2f(playerX + 15 ,playerY + 15);
-	glVertex2f(playerX + 15 , playerY +5);
-	glVertex2d(playerX+ 25 , playerY+10);
+	glVertex2f(playerX + s, playerY + s);
+	glVertex2f(playerX + s, playerY + s / 3);
+	glVertex2d(playerX + (5 * s) / 3, playerY + (2 * s) / 3);
 	glEnd();
 
 	glBegin(GL_LINES);
 	//glLineWidth(1000);
 	glColor3f(0, 0, 0);
-	glVertex2f(playerX + 15 ,playerY + 10);
-	glVertex2f(playerX + 25 , playerY +10);
+	glVertex2f(playerX + s, playerY + (2 * s) / 3);
+	glVertex2f(playerX + (5 * s) / 3, playerY + (2 * s) / 3);
 	glEnd();
-
+	float black[3] = {0, 0, 0};
+	drawCircle(playerX + 4, playerY + 5, 2, black);
 }
 
 void drawPipeDown(float x, float h, float color[3])
@@ -125,7 +140,62 @@ void drawPipeUp(float x, float h, float color[3])
 void drawPipeDou(float x, float h, float color[3])
 {
 	drawPipeDown(x, h, color);
-	drawPipeUp(x, 280 - h, color);
+	drawPipeUp(x, 260 - h, color);
+
+	//360 = 290-2h
+
+	//float gapMid = (180-h+15) + (-180 -h +15 );
+
+	float gb = 360 - h;
+	float gt = gb + 35;
+	float gapBottom;
+	float gapTop;
+	if (gb >= 0)
+	{
+		gapBottom = h - 180 + 15;
+	}
+	else
+	{
+		gapBottom = -h - 15;
+	}
+
+	if (gt >= 0)
+	{
+		gapTop = h - 180 + 85;
+	}
+	else
+	{
+		gapTop = -h + 85;
+	}
+
+	/*
+	glPointSize(5.0f); 
+	glBegin(GL_POINTS);
+	glColor3f(0,0,0);
+	glVertex2d(x , gapTop);
+	glVertex2d(x , gapBottom);
+	glEnd();
+	*/
+	float currentLeft = playerX + (5 * s) / 3;
+	float currentRight = playerX - s;
+	float currntTop = playerY + s;
+	float currentBottom = playerY - s;
+
+	if (x-5 <= currentLeft && x+45 >= currentRight && !power)
+	{
+		if (gapBottom > currentBottom)
+		{
+			playerY += (gapBottom - currentBottom) + 15;
+			lives--;
+			//power=true;
+		}
+		else if (gapTop < currntTop)
+		{
+			lives--;
+			playerY -= 10;
+			//power = true;
+		}
+	}
 }
 
 void drawAllPipes()
@@ -137,24 +207,58 @@ void drawAllPipes()
 		int pos = xpos + dist;
 		for (int j = 0; j < 3; j++)
 		{
-			
+
 			if (power)
-				drawPipeDou(pos, pipes[i][j], pipeColorAlt);
+				drawPipeDou(pos, pipes[p[i]][j], pipeColorAlt);
 			else
-				drawPipeDou(pos, pipes[i][j], pipeColor);
+				drawPipeDou(pos, pipes[p[i]][j], pipeColor);
 			pos += 130;
 		}
 		dist += 700;
 	}
 }
 
+void print(int x, int y, string s )
+{
+	int len, i;
+
+	//set the position of the text in the window using the x and y coordinates
+	glColor3f(1, 0, 0);
+	glRasterPos2f(x, y);
+
+	//get the length of the string to display
+	len = s.length();
+
+	//loop to display character by character
+	for (i = 0; i < len; i++)
+	{
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, s[i]);
+	}
+}
+
 void timer(int)
 {
 	glutPostRedisplay();
-	t += 1000 / 60;
-	playerY -= 1;
+	
+	if (playerY + s >= 180)
+	{
+		//TO-DO Handle GameOver
+		lose = true;
+		playerY -= 20;
+	}
+	else if (playerY - s <= -180)
+	{
+		lose = true;
+		playerY += 20;
+	}
+	else
+	{
+		playerY -= 1;
+	}
+	if (lives <= 0)
+		return;
 	glutTimerFunc(1000 / 60, timer, 0);
-
+	t += 5;
 	xpos -= 1.6;
 }
 
@@ -193,18 +297,25 @@ void display()
 	glLoadIdentity();
 	if (xpos > -450)
 	{
-		glClearColor(0.7, 0, 0, 0);
+		glClearColor(0.329412f, 0.329412f, 0.329412f, 0.0f);
 	}
-	else if(xpos > -950)
+	else if (xpos > -920)
 	{
-		glClearColor(0, 0, 1, 0);
+		glClearColor(0.0f, 0.3f, 0.3f, 0.0f);
+		//glColor4f(0.0f, 1.0f, 1.0f, 1.0f);
 	}
-	else{
+	else
+	{
 		glClearColor(1, 1, 1, 0);
 	}
-	
+
 	drawAllPipes();
 
+
+	
+	
+	print(580,170,"Lives: " + to_string(lives));
+	print(580,160,"Score: " + to_string(t));
 	drawPlayer();
 	glutSwapBuffers();
 }
