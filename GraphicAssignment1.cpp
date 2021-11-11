@@ -1,14 +1,12 @@
 //  Includes
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glut.h>
 
 #include <stdio.h>
-//#include <string.h>
-
 #include <random>
 #include <string>
 #include <algorithm>
+#include <GL/glut.h>
+#include <iostream>
+
 using namespace std;
 //-----------------
 
@@ -33,20 +31,40 @@ float xpos = 180;
 bool win = false;
 bool lose = false;
 bool power = false;
+float powerT = 0;
+int powerP;
+float powerX;
+
 int lives = 3;
 
-float pipes[3][3] = {{90, 120, 150}, {150, 120, 90}, {100, 100, 100}};
-int p[3] = {0,1,2};
+float pipes[3][3] = { {90, 120, 150}, {150, 120, 90}, {100, 100, 100} };
+int p[3] = { 0,1,2 };
 
-float pipeColor[3] = {0, 1, 0};
-float pipeColorAlt[3] = {1, 0, 0};
+float pipeColor[3] = { 0, 1, 0 };
+float pipeColorAlt[3] = { 1, 0, 0 };
 //-----------------
 
-int main(int argc, char **argr)
+struct RNG {
+	int operator() (int n) {
+		return std::rand() / (1.0 + RAND_MAX) * n;
+	}
+};
+
+int main(int argc, char** argr)
 {
 	glutInit(&argc, argr);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-	random_shuffle(&p[0], &p[3 ]);
+	std::random_device r;
+	std::seed_seq seed{ r(), r(), r(), r(), r(), r(), r(), r() };
+	std::mt19937 eng(seed);
+
+	std::shuffle(std::begin(p), std::end(p), eng);
+	powerP = (rand() % 2) + 1;
+	powerX = powerP * 200;
+	for (auto a : p)
+		cout << a;
+
+	cout << powerX;
 	glutInitWindowPosition(0, 0);
 	glutInitWindowSize(1280, 720);
 	glutCreateWindow("Flappy Bird");
@@ -74,12 +92,40 @@ void drawRect(float x, float y, float w, float h, float color[3])
 	glEnd();
 }
 
+void drawPower( float s) {
+
+	glBegin(GL_POLYGON);
+	glColor3f(1, 0, 0);
+	glVertex2f(powerX + xpos - s/2,  -(3*s/2));
+	glVertex2f(powerX + xpos + s/2,  - (3 * s / 2));
+	glVertex2f(powerX + xpos +s/2,  + (3 * s / 2));
+	glVertex2f(powerX + xpos - s/2,  + (3 * s / 2));
+	glEnd();
+
+	glBegin(GL_POLYGON);
+	glColor3f(1, 0, 0);
+	glVertex2f(powerX + xpos - (3 * s / 2),  -s/2);
+	glVertex2f(powerX + xpos + (3 * s / 2),  - s/2);
+	glVertex2f(powerX + xpos + (3 * s / 2),  + s/2);
+	glVertex2f(powerX + xpos - (3 * s / 2),  + s/2);
+	glEnd();
+
+	if (powerX + xpos + (3 * s / 2) >= playerX && powerX + xpos - (3 * s / 2) <= playerX)
+	{
+		if (powerX + xpos + (3 * s / 2) >= playerY && powerX + xpos - (3 * s / 2) <= playerY)
+		{
+			power = true;
+			powerT = 3000;
+		}
+	}
+}
+
 void drawCircle(float x, float y, float r, float color[3])
 {
 	glPushMatrix();
 	glColor3f(color[0], color[1], color[2]);
 	glTranslatef(x, y, 0);
-	GLUquadric *quadObj = gluNewQuadric();
+	GLUquadric* quadObj = gluNewQuadric();
 	gluDisk(quadObj, 0, r, 50, 50);
 	glPopMatrix();
 }
@@ -119,7 +165,7 @@ void drawPlayer()
 	glVertex2f(playerX + s, playerY + (2 * s) / 3);
 	glVertex2f(playerX + (5 * s) / 3, playerY + (2 * s) / 3);
 	glEnd();
-	float black[3] = {0, 0, 0};
+	float black[3] = { 0, 0, 0 };
 	drawCircle(playerX + 4, playerY + 5, 2, black);
 }
 
@@ -169,7 +215,7 @@ void drawPipeDou(float x, float h, float color[3])
 	}
 
 	/*
-	glPointSize(5.0f); 
+	glPointSize(5.0f);
 	glBegin(GL_POINTS);
 	glColor3f(0,0,0);
 	glVertex2d(x , gapTop);
@@ -181,7 +227,7 @@ void drawPipeDou(float x, float h, float color[3])
 	float currntTop = playerY + s;
 	float currentBottom = playerY - s;
 
-	if (x-5 <= currentLeft && x+45 >= currentRight && !power)
+	if (x - 5 <= currentLeft && x + 45 >= currentRight && !power)
 	{
 		if (gapBottom > currentBottom)
 		{
@@ -218,7 +264,7 @@ void drawAllPipes()
 	}
 }
 
-void print(int x, int y, string s )
+void print(int x, int y, string s)
 {
 	int len, i;
 
@@ -239,15 +285,16 @@ void print(int x, int y, string s )
 void timer(int)
 {
 	glutPostRedisplay();
-	
+
 	if (playerY + s >= 180)
 	{
-		//TO-DO Handle GameOver
+		return;
 		lose = true;
 		playerY -= 20;
 	}
 	else if (playerY - s <= -180)
 	{
+		return;
 		lose = true;
 		playerY += 20;
 	}
@@ -255,8 +302,18 @@ void timer(int)
 	{
 		playerY -= 1;
 	}
+	if (xpos < -1700)
+		return;
 	if (lives <= 0)
 		return;
+
+	if (powerT >= 0) {
+		powerT -= (1000 / 60);
+	}
+	else
+	{
+		power = false;
+	}
 	glutTimerFunc(1000 / 60, timer, 0);
 	t += 5;
 	xpos -= 1.6;
@@ -312,10 +369,10 @@ void display()
 	drawAllPipes();
 
 
-	
-	
-	print(580,170,"Lives: " + to_string(lives));
-	print(580,160,"Score: " + to_string(t));
+	drawPower(10);
+
+	print(580, 170, "Lives: " + to_string(lives));
+	print(580, 160, "Score: " + to_string(t));
 	drawPlayer();
 	glutSwapBuffers();
 }
