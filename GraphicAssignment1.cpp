@@ -110,9 +110,9 @@ void drawPower( float s) {
 	glVertex2f(powerX + xpos - (3 * s / 2),  + s/2);
 	glEnd();
 
-	if (powerX + xpos + (3 * s / 2) >= playerX && powerX + xpos - (3 * s / 2) <= playerX)
+	if (playerX >= (powerX + xpos - (3 * s / 2)) && playerX <= (powerX + xpos + (3 * s / 2)))
 	{
-		if (powerX + xpos + (3 * s / 2) >= playerY && powerX + xpos - (3 * s / 2) <= playerY)
+		if ((powerX + xpos + (3 * s / 2)) >= playerY && (powerX + xpos - (3 * s / 2)) <= playerY)
 		{
 			power = true;
 			powerT = 3000;
