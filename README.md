@@ -1,1 +1,1 @@
-# GraphicsAssignment1
+# Computer-Graphics-Assignments
