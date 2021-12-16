@@ -61,6 +61,7 @@ int main(int argc, char **argr)
 	std::mt19937 eng(seed);
 
 	std::shuffle(std::begin(p), std::end(p), eng);
+	srand(time(0));
 	powerP = (rand() % 2) + 1;
 	powerX = powerP * 200;
 	for (auto a : p)
@@ -113,9 +114,9 @@ void drawPower(float s)
 	glVertex2f(powerX + xpos - (3 * s / 2), +s / 2);
 	glEnd();
 
-	if (playerX >= (powerX + xpos - (3 * s / 2)) && playerX <= (powerX + xpos + (3 * s / 2)))
+	if (playerX <= powerX + xpos + (3 * s / 2) && playerX >= powerX + xpos - (3 * s / 2))
 	{
-		if ((powerX + xpos + (3 * s / 2)) >= playerY && (powerX + xpos - (3 * s / 2)) <= playerY)
+		if (playerY <= (3 * s / 2) && playerY >= -(3 * s / 2))
 		{
 			power = true;
 			powerT = 3000;
