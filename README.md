@@ -1,1 +1,1 @@
-# Computer-Graphics-Assignments
+# CG-Assignments
